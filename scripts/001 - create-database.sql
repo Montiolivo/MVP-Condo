@@ -190,6 +190,7 @@ CREATE TABLE arquivo_audio (
     mensagem_erro VARCHAR(255),                                    -- mensagemErro
     data_upload DATETIME NOT NULL,                                 -- dataUpload
     data_processamento DATETIME,                                   -- dataProcessamento
+    UNIQUE KEY uq_arquivo_audio_unico (caminho_arquivo, nome_original, tamanho_bytes),
     FOREIGN KEY (edital_id) REFERENCES edital(edital_id),
     FOREIGN KEY (usuario_upload_id) REFERENCES usuario(usuario_id)
 );
