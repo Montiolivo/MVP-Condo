@@ -153,6 +153,11 @@ async function processTranscription(audioId: string, filePath: string): Promise<
         const chunkPath = processingResult.chunks[i];
         console.log(`📝 Transcrevendo parte ${i + 1}/${processingResult.chunks.length}...`);
         
+        // Adicionar delay entre chunks para evitar rate limiting (exceto no primeiro)
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 1000)); // 1 segundo entre chunks
+        }
+        
         const result = await transcribeAudio(chunkPath);
         fullTranscription += result.text + '\n\n';
         

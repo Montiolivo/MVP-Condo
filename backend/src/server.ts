@@ -29,14 +29,6 @@ app.use(fileUpload({
 // Rotas da API
 app.use('/api/audio', audioRoutes);
 
-// Rota raiz - servir página de listagem
-app.get('/', (req: Request, res: Response) => {
-  res.sendFile(path.join(__dirname, '../public/listagem.html'));
-});
-
-// Servir arquivos estáticos do frontend (após definir rotas específicas)
-app.use(express.static(path.join(__dirname, '../public')));
-
 // Health check
 app.get('/health', (req: Request, res: Response) => {
   res.json({ 

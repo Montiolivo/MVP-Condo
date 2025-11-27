@@ -37,7 +37,7 @@ export async function compressAudio(
  */
 export async function splitAudioIntoChunks(
   inputPath: string,
-  chunkDurationSeconds: number = 600 // 10 minutos por padrão
+  chunkDurationSeconds: number = 1200 // 20 minutos por padrão (~9.6MB por chunk com 64kbps, margem segura)
 ): Promise<string[]> {
   return new Promise((resolve, reject) => {
     const outputDir = path.dirname(inputPath);
@@ -54,7 +54,7 @@ export async function splitAudioIntoChunks(
 
       let processedChunks = 0;
 
-      // Dividir em chunks
+      // Dividir em chunks com compressão
       for (let i = 0; i < numberOfChunks; i++) {
         const startTime = i * chunkDurationSeconds;
         const chunkPath = path.join(outputDir, `${baseName}_chunk_${i}.mp3`);
@@ -63,6 +63,10 @@ export async function splitAudioIntoChunks(
         ffmpeg(inputPath)
           .setStartTime(startTime)
           .setDuration(chunkDurationSeconds)
+          .audioBitrate('64k') // Comprimir chunks
+          .audioCodec('libmp3lame')
+          .audioChannels(1) // Mono
+          .audioFrequency(16000) // 16kHz
           .output(chunkPath)
           .on('end', () => {
             processedChunks++;
@@ -114,13 +118,21 @@ export async function processAudioFile(inputPath: string): Promise<AudioProcessi
       };
     }
 
-    // Se ainda está muito grande, divide em chunks
-    const chunks = await splitAudioIntoChunks(compressedPath);
+    // Se ainda está muito grande, divide o arquivo ORIGINAL em chunks
+    // (chunks já serão comprimidos durante a divisão)
+    console.log('⚠️ Arquivo comprimido ainda muito grande. Dividindo arquivo original em chunks comprimidos...');
+    const chunks = await splitAudioIntoChunks(inputPath);
+    
+    // Adiciona o arquivo comprimido aos chunks para ser deletado depois
+    chunks.push(compressedPath);
+    
+    // Calcular tamanho médio dos chunks
+    const firstChunkStats = await fs.stat(chunks[0]);
     
     return {
       processedPath: chunks[0], // Retorna o primeiro chunk
       originalSize,
-      processedSize: compressedStats.size,
+      processedSize: firstChunkStats.size,
       wasCompressed: true,
       chunks
     };
