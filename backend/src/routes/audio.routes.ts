@@ -9,10 +9,40 @@ import { uploadSchema } from '../config/upload.config';
 const router = Router();
 
 /**
- * POST /api/audio/upload
- * CA-001.01 - Upload bem-sucedido cria o registro com status pendente
- * RN-001.03 - Upload deve ser vinculado a um ID (reunião/teste)
- * RN-001.04 - Status inicial = "pendente"
+ * @swagger
+ * /audio/upload:
+ *   post:
+ *     summary: Upload de arquivo de áudio
+ *     description: |
+ *       POST /api/audio/upload  
+ *       CA-001.01 - Upload cria registro com status pendente  
+ *       RN-001.03 - Upload deve ser vinculado a um ID  
+ *       RN-001.04 - Status inicial = "pendente"
+ *     tags: [Áudio]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - usuarioId
+ *               - audio
+ *             properties:
+ *               usuarioId:
+ *                 type: string
+ *               idReuniaoOuTeste:
+ *                 type: string
+ *               audio:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: Upload realizado com sucesso
+ *       400:
+ *         description: Dados inválidos
+ *       404:
+ *         description: Usuário não encontrado
  */
 router.post('/upload', validateAudioFile, async (req: Request, res: Response) => {
   try {
@@ -232,8 +262,64 @@ async function processTranscription(audioId: string, filePath: string): Promise<
 }
 
 /**
- * GET /api/audio/:id
- * Buscar detalhes de um arquivo de áudio
+ * @swagger
+ * /audio/{id}:
+ *   get:
+ *     summary: Buscar detalhes de um arquivo de áudio
+ *     description: Retorna todos os dados do arquivo de áudio, incluindo informações do usuário.
+ *     tags: [Áudio]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: ID do arquivo de áudio
+ *     responses:
+ *       200:
+ *         description: Arquivo encontrado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     nomeOriginal:
+ *                       type: string
+ *                     nomeArmazenado:
+ *                       type: string
+ *                     caminhoArquivo:
+ *                       type: string
+ *                     tamanhoBytes:
+ *                       type: number
+ *                     formato:
+ *                       type: string
+ *                     statusProcessamento:
+ *                       type: string
+ *                     idReuniaoOuTeste:
+ *                       type: string
+ *                     usuario:
+ *                       type: object
+ *                       properties:
+ *                         id:
+ *                           type: string
+ *                         nome:
+ *                           type: string
+ *                         email:
+ *                           type: string
+ *                     createdAt:
+ *                       type: string
+ *                       format: date-time
+ *       404:
+ *         description: Arquivo não encontrado
+ *       500:
+ *         description: Erro interno ao buscar o arquivo
  */
 router.get('/:id', async (req: Request, res: Response) => {
   try {
@@ -275,9 +361,75 @@ router.get('/:id', async (req: Request, res: Response) => {
 });
 
 /**
- * GET /api/audio
- * Listar todos os arquivos de áudio
+ * @swagger
+ * /audio:
+ *   get:
+ *     summary: Lista todos os arquivos de áudio
+ *     description: Retorna todos os registros de áudio, com filtro opcional por usuário e status de processamento.
+ *     tags: [Áudio]
+ *     parameters:
+ *       - in: query
+ *         name: usuarioId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: ID do usuário para filtrar os registros.
+ *       - in: query
+ *         name: status
+ *         schema:
+ *           type: string
+ *           enum: [PENDENTE, PROCESSANDO, CONCLUIDO, ERRO]
+ *         required: false
+ *         description: Filtrar por status de processamento.
+ *     responses:
+ *       200:
+ *         description: Lista de arquivos retornada com sucesso.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 count:
+ *                   type: number
+ *                 data:
+ *                   type: array
+ *                   items:
+ *                     type: object
+ *                     properties:
+ *                       id:
+ *                         type: string
+ *                       nomeOriginal:
+ *                         type: string
+ *                       nomeArmazenado:
+ *                         type: string
+ *                       caminhoArquivo:
+ *                         type: string
+ *                       tamanhoBytes:
+ *                         type: number
+ *                       formato:
+ *                         type: string
+ *                       statusProcessamento:
+ *                         type: string
+ *                       idReuniaoOuTeste:
+ *                         type: string
+ *                       createdAt:
+ *                         type: string
+ *                         format: date-time
+ *                       usuario:
+ *                         type: object
+ *                         properties:
+ *                           id:
+ *                             type: string
+ *                           nome:
+ *                             type: string
+ *                           email:
+ *                             type: string
+ *       500:
+ *         description: Erro interno ao listar arquivos.
  */
+
 router.get('/', async (req: Request, res: Response) => {
   try {
     const { usuarioId, status } = req.query;
@@ -324,9 +476,53 @@ router.get('/', async (req: Request, res: Response) => {
 });
 
 /**
- * POST /api/audio/:id/gerar-ata
- * Gera uma ata estruturada a partir da transcrição
+ * @swagger
+ * /audio/{id}/gerar-ata:
+ *   post:
+ *     summary: Gera uma ata estruturada baseada na transcrição do áudio
+ *     description: |
+ *       Inicia o processo assíncrono de geração de ata para um arquivo de áudio já transcrito.
+ *       
+ *       - O arquivo deve ter **statusProcessamento = CONCLUIDO**
+ *       - Caso a ata já esteja sendo gerada, retorna erro 409
+ *       - O processo ocorre em background e o usuário deve consultar o status posteriormente
+ *     tags: [Áudio]
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: ID do arquivo de áudio
+ *         schema:
+ *           type: string
+ *     responses:
+ *       202:
+ *         description: Processo de geração iniciado com sucesso
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     id:
+ *                       type: string
+ *                     statusAta:
+ *                       type: string
+ *       400:
+ *         description: A transcrição não está pronta para gerar a ata
+ *       404:
+ *         description: Arquivo não encontrado
+ *       409:
+ *         description: Ata já está sendo gerada
+ *       500:
+ *         description: Erro ao iniciar processo de geração da ata
  */
+
 router.post('/:id/gerar-ata', async (req: Request, res: Response) => {
   try {
     const { id } = req.params;

@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import audioRoutes from './routes/audio.routes';
+import { swaggerUi, swaggerSpec } from "./config/swagger.config";
 
 dotenv.config();
 
@@ -32,6 +33,9 @@ app.use(fileUpload({
 
 // Rotas
 app.use('/api/audio', audioRoutes);
+
+// SWAGGER
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Health check
 app.get('/health', (req: Request, res: Response) => {

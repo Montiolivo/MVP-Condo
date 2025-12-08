@@ -34,6 +34,53 @@ npx prisma migrate dev
 npx prisma db seed
 ```
 
+ 1. Instalar MySQL
+
+Você pode instalar o MySQL de várias formas. A maneira mais simples é via MySQL Installer:
+
+🔗 Download: https://dev.mysql.com/downloads/installer/
+
+Durante a instalação, escolha:
+
+MySQL Server 8.x
+
+Crie uma senha para o usuário root
+
+Anote essa senha → você vai precisar dela
+
+Após instalado, seu banco estará rodando em:
+
+Host: localhost
+Porta: 3306
+Usuário: root
+Senha: (a que você escolheu)
+
+🛢️ 2. Criar o banco de dados
+
+Após instalar, crie o banco usando MySQL Workbench, DBeaver ou via terminal.
+
+📌 Via terminal:
+
+mysql -u root -p
+
+Depois:
+
+CREATE DATABASE appdb;
+
+⚙️ 3. Configurar Prisma para MySQL
+
+No arquivo .env:
+
+DATABASE_URL="mysql://root:SUA_SENHA@localhost:3306/appdb"
+
+Substitua:
+
+root se você usar outro usuário
+
+SUA_SENHA pela senha definida no MySQL
+
+appdb pelo nome do seu banco
+
 ## 🏃 Executar
 
 ```bash
